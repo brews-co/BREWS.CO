@@ -189,10 +189,10 @@ function calculate() {
   const orderedRows = [
     { item: system.M,  beg: v("beginM"),  end: v("endM"),  dmg: dmg.M  },
     { item: system.L,  beg: v("beginL"),  end: v("endL"),  dmg: dmg.L  },
-    { item: system.LC, beg: null,         end: null,        dmg: 0      },
     { item: system.MC, beg: null,         end: null,        dmg: 0      },
-    { item: system.HC, beg: v("beginHC"), end: v("endHC"), dmg: dmg.HC },
+    { item: system.LC, beg: null,         end: null,        dmg: 0      },
     { item: system.S,  beg: v("beginS"),  end: v("endS"),  dmg: dmg.S  },
+    { item: system.HC, beg: v("beginHC"), end: v("endHC"), dmg: dmg.HC },
     ...system.extras.map(item => ({ item, beg: null, end: null, dmg: 0 })),
   ];
 

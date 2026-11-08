@@ -25,7 +25,9 @@ async function load(port, page, pre) {
 server.listen(0, async () => {
   const port = server.address().port;
   for (const p of ["index.html", "settings.html", "calendar.html", "calculate.html", "pos.html"]) {
-    const { dom, errs } = await load(port, p); check(p + " loads without errors", errs.length === 0); dom.window.close();
+    const { dom, d, errs } = await load(port, p); check(p + " loads without errors", errs.length === 0);
+    check(p + " shows the bottom nav", !!d.querySelector(".bottom-nav"));
+    dom.window.close();
   }
   let { dom, w, d } = await load(port, "settings.html");
   w.eval('openNewProduct(); _mi.name="Frappe"; _mi.price=70; _mi.cup="L"; onMiFlavChange("own");');
@@ -65,6 +67,9 @@ server.listen(0, async () => {
     check("same-price product is listed on the M row", r.M === 7 && r.extras === 0 && r.total === 7 * 29);
     r = calc([{ name: "Fruit Tea M", cup: "M", qty: 1, unitPrice: 33, total: 33 }]);
     check("different-price product gets its own line", r.M === 6 && r.extras === 1);
+    cw.eval('["beginM","endM","tallyMC","beginL","endL","tallyLC","beginS","endS","beginHC","endHC"].forEach((id,i)=>{document.getElementById(id).value=[10,5,1,10,5,1,10,5,10,5][i];}); calculate();');
+    const names = [...cdom.window.document.querySelector("#results table").querySelectorAll("tr:not(.totals)")].slice(1).map(tr => tr.children[0].textContent.trim());
+    check("receipt rows are in the shop's order", JSON.stringify(names) === JSON.stringify(["Medium", "Large", "Iced Coffee M", "Iced Coffee L", "Small", "Hot Coffee"]));
     cdom.window.close();
   }
 
