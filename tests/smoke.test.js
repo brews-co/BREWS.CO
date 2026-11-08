@@ -69,6 +69,9 @@ server.listen(0, async () => {
     check("different-price product gets its own line", r.M === 6 && r.extras === 1);
     cw.eval('["beginM","endM","tallyMC","beginL","endL","tallyLC","beginS","endS","beginHC","endHC"].forEach((id,i)=>{document.getElementById(id).value=[10,5,1,10,5,1,10,5,10,5][i];}); calculate();');
     const names = [...cdom.window.document.querySelector("#results table").querySelectorAll("tr:not(.totals)")].slice(1).map(tr => tr.children[0].textContent.trim());
+    cw.eval('["tallyMC","tallyLC"].forEach(id=>{document.getElementById(id).value=0;}); calculate();');
+    const zeroNames = [...cdom.window.document.querySelector("#results table").querySelectorAll("tr:not(.totals)")].slice(1).map(tr => tr.children[0].textContent.trim());
+    check("rows with no sales still show", zeroNames.includes("Iced Coffee M") && zeroNames.includes("Iced Coffee L") && zeroNames.length === 6);
     check("receipt rows are in the shop's order", JSON.stringify(names) === JSON.stringify(["Medium", "Large", "Iced Coffee M", "Iced Coffee L", "Small", "Hot Coffee"]));
     cdom.window.close();
   }

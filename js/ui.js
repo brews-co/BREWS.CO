@@ -219,7 +219,6 @@ function calculate() {
 
   let hasNegative = false;
   orderedRows.forEach(({ item, beg, end, dmg }) => {
-    if (item.usedCups === 0 && beg === null) return;
     if (item.usedCups < 0) hasNegative = true;
 
     // Damage annotation — red below, label-free (block below table explains)
@@ -316,7 +315,7 @@ function calculate() {
 
   lastRenderData = {
     date:         existingDate,
-    rows:         orderedRows.filter(r => !(r.item.usedCups === 0 && r.beg === null)),
+    rows:         orderedRows,
     totalSales, salary, grossIncome, finalTotal,
     expenses:     system.expensesList,
     addons:       system.addons,
