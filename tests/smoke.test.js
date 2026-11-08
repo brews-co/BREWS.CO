@@ -45,9 +45,28 @@ server.listen(0, async () => {
   check("non-core default can change cup and name", w.eval("loadMenuDrinks().find(x=>x.code==='FTM')").cup === "L" && w.eval("loadMenuDrinks().find(x=>x.code==='FTM')").name === "Berry Tea");
   w.eval('document.getElementById("sp_shopName").value="My Cafe"; saveShop();');
   check("shop name is editable", w.eval("shopName()") === "My Cafe");
+  // sharing one flavor list between sizes
+  w.eval('openNewProduct(); _mi.name="Frappe M"; _mi.price=70; _mi.cup="M"; onMiFlavChange("own"); _mi.lists[_mi.code]=["Mocha","Oreo"]; saveMenuItem();');
+  w.eval('openNewProduct(); _mi.name="Frappe L"; _mi.price=90; _mi.cup="L"; onMiFlavChange("P1"); saveMenuItem();');
+  check("another product can pick the same flavor list", w.eval("loadMenuDrinks().find(x=>x.name==='Frappe L').flav") === "P1");
+  w.eval('openMenuItemEditor("P1"); deleteMenuItem();');
+  check("shared list survives when the first product is deleted", JSON.stringify(w.eval("getSettings().flavors.P1")) === '["Mocha","Oreo"]' && w.eval("flavorLabel('P1')") === "Frappe M flavors");
+  w.eval('document.getElementById("newListName").value="Smoothies"; newFlavorList();');
+  check("a named list can be created in Settings", w.eval("flavorListInfo().some(x=>x.label==='Smoothies')"));
   check("localDate is local", w.eval("localDate(new Date(2026,0,5,1,0))") === "2026-01-05");
   check("cleanHTML strips handlers", !w.eval('cleanHTML("<img src=x onerror=alert(1)><script>1</script><b>ok</b>")').match(/onerror|script/));
   dom.window.close();
+
+  {
+    const { dom: cdom, w: cw } = await load(port, "calculate.html");
+    // extras merge into the cup row when the price matches, else get their own line
+    const calc = ex => cw.eval(`(()=>{const s=new InventorySystem(getSettings());s.setCupsM(10,3,0);s.setMC(0);s.setExtras(${JSON.stringify(ex)});return {M:s.M.usedCups,extras:s.extras.length,total:s.computeTotalCupSale()};})()`);
+    let r = calc([{ name: "Fruit Tea M", cup: "M", qty: 1, unitPrice: 29, total: 29 }]);
+    check("same-price product is listed on the M row", r.M === 7 && r.extras === 0 && r.total === 7 * 29);
+    r = calc([{ name: "Fruit Tea M", cup: "M", qty: 1, unitPrice: 33, total: 33 }]);
+    check("different-price product gets its own line", r.M === 6 && r.extras === 1);
+    cdom.window.close();
+  }
 
   // POS: ids stay unique after a void, products without a cup or flavors add straight to the order
   const pre = w => {

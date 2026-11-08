@@ -116,7 +116,7 @@
       font-family: "Plus Jakarta Sans", sans-serif; transition: background-color .14s, border-color .14s, color .14s, box-shadow .14s, transform .14s, opacity .14s, filter .14s;
       box-shadow: 0 2px 5px rgba(107,61,30,0.06);
       -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-      height: 116px; overflow: hidden;
+      height: 116px; overflow: visible;
     }
     .drink-btn:active { transform: scale(0.92); }
     .drink-btn.has-qty { border-color: var(--clay); background: var(--sand-alt); box-shadow: 0 3px 10px rgba(107,61,30,0.13); }
@@ -139,7 +139,7 @@
     .drink-btn.low-stock .stock-pill { background: #fde8c8; color: #b06820; }
     .drink-btn.out-stock .stock-pill { background: #fdd8d8; color: #b04040; }
     .qty-badge {
-      position: absolute; top: -7px; right: -7px;
+      position: absolute; top: 7px; right: 8px;
       background: var(--grad-cta);
       color: var(--white); font-size: 0.68rem; font-weight: 800;
       width: 20px; height: 20px; border-radius: 50%;

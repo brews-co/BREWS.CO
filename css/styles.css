@@ -460,7 +460,7 @@ body.has-bottom-nav .pos-body { padding-bottom: 92px; }
 .menu-edit-bar span { flex: 1; }
 .menu-edit-bar .done { background: var(--grad-cta); color: #fff; border: none; }
 
-.drink-btn { height: auto; min-height: 116px; }
+.drink-btn { height: auto; min-height: 116px; overflow: visible; }
 .drink-btn-img { width: 36px; height: 36px; border-radius: 9px; object-fit: cover; display: block; }
 .drink-btn.custom { background: var(--tile-bg) !important; }
 .drink-btn.custom .drink-btn-code, .drink-btn.custom .drink-btn-name, .drink-btn.custom .drink-btn-price { color: var(--tile-fg); }

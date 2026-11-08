@@ -218,16 +218,28 @@ function flavorBuiltinLabel(key) {
   return (typeof o[key] === "string" && o[key].trim()) || FLAVOR_BUILTIN[key];
 }
 function flavorListInfo() {
-  const out = Object.keys(FLAVOR_BUILTIN).map(key => ({ key, label: flavorBuiltinLabel(key), builtin: true }));
+  const cfg = getSettings(), labels = cfg.flavorLabels || {};
+  const out = Object.keys(FLAVOR_BUILTIN).map(key => ({ key, label: flavorBuiltinLabel(key), title: flavorBuiltinLabel(key), builtin: true }));
+  const seen = new Set(out.map(x => x.key));
+  const own = (key, name) => { if (seen.has(key)) return; seen.add(key); out.push({ key, label: name + " (own list)", title: name + " flavors", own: true }); };
   const l = getMenuLayout();
-  l.custom.forEach(c => { if (c.flav && c.flav === c.code) out.push({ key: c.code, label: (c.name || c.code) + " (own list)" }); });
+  l.custom.forEach(c => { if (c.flav && c.flav === c.code) own(c.code, c.name || c.code); });
   // a default product that was given its own list
   DEFAULT_MENU.forEach(d => {
     const o = l.items[d.code] || {};
-    if (!l.deleted.includes(d.code) && o.flav && o.flav === d.code) out.push({ key: d.code, label: (o.name || d.name) + " (own list)" });
+    if (!l.deleted.includes(d.code) && o.flav && o.flav === d.code) own(d.code, o.name || d.name);
+  });
+  // named lists made on their own (or kept when the product that started them was deleted)
+  Object.keys(cfg.flavors).forEach(k => {
+    if (seen.has(k) || !Array.isArray(cfg.flavors[k])) return;
+    const name = (typeof labels[k] === "string" && labels[k].trim()) || k;
+    seen.add(k); out.push({ key: k, label: name, title: name, custom: true });
   });
   return out;
 }
+function flavorTitle(key) { return (flavorListInfo().find(x => x.key === key) || {}).title || key; }
+// true when some other product still uses this list
+function _flavorUsedByOthers(code, key) { return loadMenuDrinks().some(d => d.code !== code && d.flav === key); }
 function flavorLabel(key) { return (flavorListInfo().find(x => x.key === key) || {}).label || key; }
 
 function _splitFlavors(text) {
@@ -309,17 +321,18 @@ function miRemoveFlavor(i) {
 
 function _miFlavorSection() {
   const m = _mi;
+  const lists = flavorListInfo().filter(x => x.key !== m.code);
   const opts = [["", "No flavor list (adds straight to order)"]]
-    .concat(Object.keys(FLAVOR_BUILTIN).map(k => [k, flavorBuiltinLabel(k) + " list (shared)"]))
-    .concat([["own", "Its own list"]]);
+    .concat(lists.map(x => [x.key, x.title + " list (shared)"]))
+    .concat([["own", "Its own list (new)"]]);
   const select = `<select class="mi-input" onchange="onMiFlavChange(this.value)">${
     opts.map(([k, v]) => `<option value="${k}"${k === _miFlavSelectValue() ? " selected" : ""}>${v}</option>`).join("")}</select>`;
   if (!m.flav) return `<label class="mi-label">Flavors</label>${select}`;
 
   const list = m.lists[m.flav] || [];
   const sharedBy = loadMenuDrinks().filter(d => d.flav === m.flav && d.code !== m.code).map(d => d.name);
-  const title = m.flav === m.code ? "This product's own flavors" : (FLAVOR_BUILTIN[m.flav] ? flavorBuiltinLabel(m.flav) : m.flav) + " flavors";
-  const note = m.flav !== m.code && sharedBy.length ? `<div class="mi-note">Shared with ${sharedBy.map(esc).join(", ")}. Changes apply to all of them.</div>` : "";
+  const title = m.flav === m.code ? "This product's own flavors" : flavorTitle(m.flav);
+  const note = m.flav !== m.code && sharedBy.length ? `<div class="mi-note">Also used by ${sharedBy.map(esc).join(", ")}. Changes apply to all of them.</div>` : "";
   return `
     <label class="mi-label">Flavors</label>
     ${select}
@@ -423,7 +436,7 @@ function saveMenuItem() {
       flav: m.flav || "",
     };
     if (!m.core) l.items[m.code].cup = m.cup || "";
-    if (m.flav !== m.code) delete m.lists[m.code];
+    if (m.flav !== m.code && !_flavorUsedByOthers(m.code, m.code)) delete m.lists[m.code];
     cfg.prices[m.code] = m.price;
   } else {
     const c = { code: m.code, name, icon: m.icon || "🧋", price: m.price, cup: m.cup, flav: m.flav };
@@ -432,8 +445,8 @@ function saveMenuItem() {
     l.items[m.code] = { img: m.img || "", color: m.color || "", hidden: !!m.hidden };
     if (m.isNew && !l.order.length) l.order = loadMenuDrinks().map(x => x.code);
     if (m.isNew && !l.order.includes(m.code)) l.order.push(m.code);
-    // An own list only exists while the product uses it
-    if (m.flav !== m.code) delete m.lists[m.code];
+    // An own list goes when the product stops using it, unless another product still shares it
+    if (m.flav !== m.code && !_flavorUsedByOthers(m.code, m.code)) delete m.lists[m.code];
   }
   cfg.flavors = m.lists;
   saveSettings(cfg);
@@ -448,7 +461,7 @@ function resetMenuItem() {
   delete l.items[m.code];
   saveMenuLayout(l);
   const cfg = getSettings();
-  if (cfg.flavors[m.code]) { delete cfg.flavors[m.code]; delete cfg.prices[m.code]; saveSettings(cfg); }
+  if (cfg.flavors[m.code] && !_flavorUsedByOthers(m.code, m.code)) { delete cfg.flavors[m.code]; delete cfg.prices[m.code]; saveSettings(cfg); }
   else if (cfg.prices[m.code] !== undefined) { delete cfg.prices[m.code]; saveSettings(cfg); }
   closeMenuItemEditor();
   menuChanged();
@@ -463,7 +476,11 @@ function deleteMenuItem() {
   delete l.items[m.code];
   l.order = l.order.filter(c => c !== m.code);
   const cfg = getSettings();
-  delete cfg.flavors[m.code];            // its own flavor list goes with it
+  if (_flavorUsedByOthers(m.code, m.code)) {
+    // another product shares this list, so it stays as a named list
+    cfg.flavorLabels = cfg.flavorLabels || {};
+    cfg.flavorLabels[m.code] = (m.name || m.code).slice(0, 24) + " flavors";
+  } else delete cfg.flavors[m.code];     // otherwise its own flavor list goes with it
   saveSettings(cfg);
   saveMenuLayout(l);
   closeMenuItemEditor();

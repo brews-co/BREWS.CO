@@ -1377,7 +1377,8 @@ function computeExtras() {
   const map = {};
   state.orders.forEach(o => o.items.forEach(i => {
     if (core.has(i.code)) return;
-    const e = map[i.code] || (map[i.code] = { code: i.code, name: i.name, cup: itemCup(i), qty: 0, total: 0 });
+    const mk = i.code + "|" + i.unitPrice;           // same product at another price = another line
+    const e = map[mk] || (map[mk] = { code: i.code, name: i.name, cup: itemCup(i), unitPrice: i.unitPrice, qty: 0, total: 0 });
     e.qty += i.qty; e.total += i.unitPrice * i.qty;
   }));
   return Object.values(map);
